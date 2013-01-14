@@ -191,6 +191,13 @@ def OptimizeIterator(DevSet,lamatas,N):
     print "##Lamatas:",lamatas
   if iternum>=Maxiter:print "Exit iterating for maxiter times"
   if abs(lasterror-newerror)<=epsilon:print "Iterating Success"
+  try:
+    fp=open("Data/lamatas.dat",'w')
+    cPickle.dump(lamatas,fp)
+  except:
+    print 'Open file error'
+  finally:
+    fp.close()
   return lamatas
 
   

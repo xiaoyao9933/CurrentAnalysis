@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import cPickle
 import numpy as np
-import copy
+from StatusSearch import *
+
 def GetCurrent(Status,DevData):
   flag=0
   print Status
@@ -12,7 +13,6 @@ def GetCurrent(Status,DevData):
         flag=1
       else:
         result=result+np.array(DevData[x,Status[x]])
-  result=np.zeros((1,len(DevData[(0,1)])))[0].tolist()
   return result
       
   
@@ -30,15 +30,19 @@ if __name__ == '__main__':
     print 'Open file error'
   finally:
     fp.close()
+    
+  try:
+    fp=open("Data/lamatas.dat",'r')
+    lamatas=cPickle.load(fp)
+  except:
+    print 'Open file error'
+  finally:
+    fp.close()
   DevSet=[]
   Status={}
   for x in StatusSet:
     Status[x]=1
-#  DevSet.append({'status':Status,'current':GetCurrent(Status,DevData)})
-  for x in StatusSet:
-    Status[x]=0
-    tmpStatus=copy.deepcopy(Status)
-    DevSet.append({'status':tmpStatus,'current':GetCurrent(Status,DevData)})
-    Status[x]=1
-  DevSet=DevSet[0:3]
-  print 'Generating DevSet Finished'
+  #DevSet.append({'status':Status,'current':GetCurrent(Status,DevData)})
+  DevSet.append({'status':Status,'current':f[23]})
+  searcher=Searcher()
+  print searcher.StatusSearch(lamatas,5,DevSet)
