@@ -20,8 +20,10 @@ def CutToTheSame(temp_c):
 def FFTTrans(x):
     length=int((int(fsample/50)-20)/2)
     for item in x:
-      f.append([np.real(ele)/len(item)*2 for ele in np.fft.fft(item)[1:length]]+\
-      [np.imag(ele)/len(item)*2 for ele in np.fft.fft(item)[1:length]])
+      #f.append([np.real(ele)/len(item)*2 for ele in np.fft.fft(item)[1:length]]+\
+      #[np.imag(ele)/len(item)*2 for ele in np.fft.fft(item)[1:length]])
+      f.append([np.real(ele)/len(item)*2 for ele in np.fft.fft(item)[1:11:2]]+\
+      [np.imag(ele)/len(item)*2 for ele in np.fft.fft(item)[1:11:2]])
     return
   
 

@@ -2,6 +2,7 @@
 import cPickle
 import numpy as np
 import copy
+from OptimizeWeight import *
 def GetCurrent(Status,DevData):
   flag=0
   print Status
@@ -12,7 +13,8 @@ def GetCurrent(Status,DevData):
         flag=1
       else:
         result=result+np.array(DevData[x,Status[x]])
-  result=np.zeros((1,len(DevData[(0,1)])))[0].tolist()
+  if flag==0:
+      result=np.zeros((1,len(DevData[(0,1)])))[0].tolist()
   return result
       
   
@@ -34,11 +36,13 @@ if __name__ == '__main__':
   Status={}
   for x in StatusSet:
     Status[x]=1
-#  DevSet.append({'status':Status,'current':GetCurrent(Status,DevData)})
+  DevSet.append({'status':Status,'current':GetCurrent(Status,DevData)})
   for x in StatusSet:
     Status[x]=0
     tmpStatus=copy.deepcopy(Status)
     DevSet.append({'status':tmpStatus,'current':GetCurrent(Status,DevData)})
     Status[x]=1
-  DevSet=DevSet[0:3]
+  DevSet=DevSet[0:4]
   print 'Generating DevSet Finished'
+  a=Optimizer()
+  a.OptimizeIterator(DevSet,[1,1],10)

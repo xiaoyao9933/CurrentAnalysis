@@ -62,20 +62,29 @@ class Searcher:
         curstate=node['status'][pid]
         for dim in range(0,len(DeVector[pid])):
           if curstate!=0:
-            k=self.kernel[(pid,curstate)][dim+1](DeVector[pid][dim])
+            value=DeVector[pid][dim]
+            k=self.kernel[(pid,curstate)][dim+1].integrate_box_1d(value-5,value+5)
             if k!=0:
               h[0]+=np.log(k)
+              print k,'0'
             else:
-              h[0]+=(-999999)
+              print '0 alert'
+              h[0]+=(-253)
       ####Feature 1 ,in all dim
       for pid in node['status']:
         curstate=node['status'][pid]
         if curstate!=0:
-          k=self.kernel[(pid,curstate)][0](DeVector[pid])
+          value=DeVector[pid]
+          #lowbound=np.array([t-1 for t in value])
+          #highbound=np.array([t+1 for t in value])
+          #k=self.kernel[(pid,curstate)][0].integrate_box(lowbound,highbound,maxpts=5)          
+          k=self.kernel[(pid,curstate)][0](value)[0]
           if k!=0:
             h[1]+=np.log(k)
+            print k,'1'
           else:
-            h[1]+=(-999999)
+            print '1 alert'
+            h[1]+=(-253)
       for w in range(0,len(h)):
         h[w]=float(h[w])
       #Calculate the sum
@@ -111,6 +120,7 @@ class Searcher:
         else:flag=True
       ##After search,push the tmp to closed
       self.PushToClosed()
+      self.Closed.sort(cmp=Scorecmp)
       Result.append(self.Closed[0:N])
     return Result
       
@@ -132,13 +142,14 @@ class Searcher:
         fp=open("%s%s"%(dirdata,x),'r')
       except:
         print 'Open file error'
-      sf=cPickle.load(fp)
+      self.sf=cPickle.load(fp)
+      self.sf=self.sf
       fp.close()
       self.kernel[(pid,state)]={}
-      self.kernel[(pid,state)][0]=stats.kde.gaussian_kde(sf.T)
+      self.kernel[(pid,state)][0]=stats.kde.gaussian_kde(self.sf.T)
       #0 is special for containing all dimensions
-      for y in range(0,np.size(sf,1)):
-        self.kernel[(pid,state)][y+1]=stats.kde.gaussian_kde(sf[:,y].T)
+      for y in range(0,np.size(self.sf,1)):
+        self.kernel[(pid,state)][y+1]=stats.kde.gaussian_kde(self.sf[:,y].T)
     try:
       fp=open("Data/Status.dat",'r')
     except:

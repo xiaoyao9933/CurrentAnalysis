@@ -6,32 +6,32 @@ import cPickle,mdp
 
 print "Compressing the Vectors....."
 sf=array(f)[0:1000,:]
-D=np.zeros((len(sf),len(sf)))
-for i in range(0,len(sf)):
-  for j in range(i,len(sf)):
-    D[i,j]=spatial.distance.euclidean(sf[i,:],sf[j,:])
-D=D+D.transpose()
-std_D=std(mean(D,axis=1))
-
-DistanceGate=std_D/5    #  %8 propobability 
-CountGate=10
-DeleteList=[]
-for i in range(0,len(sf)):
-    temp=D[i,i:len(sf)]
-    temp.sort()
-    count=0
-    for j in range(0,len(sf)-i):
-      if temp[j]<DistanceGate:
-        count=count+1
-        if count>CountGate:
-          DeleteList.append(j+i)
-      else:
-        break
-RemainList=[]
-for i in range(0,len(sf)):
-  if DeleteList.count(i)==0:
-    RemainList.append(i)
-sf=sf[RemainList]
+#D=np.zeros((len(sf),len(sf)))
+#for i in range(0,len(sf)):
+#  for j in range(i,len(sf)):
+#    D[i,j]=spatial.distance.euclidean(sf[i,:],sf[j,:])
+#D=D+D.transpose()
+#std_D=std(mean(D,axis=1))
+#
+#DistanceGate=std_D/5    #  %8 propobability 
+#CountGate=10
+#DeleteList=[]
+#for i in range(0,len(sf)):
+#    temp=D[i,i:len(sf)]
+#    temp.sort()
+#    count=0
+#    for j in range(0,len(sf)-i):
+#      if temp[j]<DistanceGate:
+#        count=count+1
+#        if count>CountGate:
+#          DeleteList.append(j+i)
+#      else:
+#        break
+#RemainList=[]
+#for i in range(0,len(sf)):
+#  if DeleteList.count(i)==0:
+#    RemainList.append(i)
+#sf=sf[RemainList]
 
 ###Todo: save the compressed samples
 fp=open("CompressedData/%d-%d"%(pid,state),'w')

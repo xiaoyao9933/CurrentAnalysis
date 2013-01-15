@@ -58,7 +58,7 @@ class PCAClass:
         rjk=self.pmatrix[(x,status[x])]*ijk+self.pmean[(x,status[x])]
         DeVector[x]=rjk.transpose().tolist()[0]
       else:
-        DeVector[x]=np.zeros((1,490))[0]
+        DeVector[x]=np.zeros((1,10))[0]
     return DeVector
     
       
