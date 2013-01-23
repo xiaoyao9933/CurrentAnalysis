@@ -43,7 +43,7 @@ if __name__ == '__main__':
   for x in StatusSet:
     Status[x]=1
   Status[2]=0
-  DevSet.append({'status':Status,'current':GetCurrent(Status,DevData)})
-  #DevSet.append({'status':Status,'current':f[0]})
+  #DevSet.append({'status':Status,'current':GetCurrent(Status,DevData)})
+  DevSet.append({'status':Status,'current':f[88]})
   searcher=Searcher()
   print searcher.StatusSearch(lamatas,5,DevSet)

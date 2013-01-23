@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PreProcess import *
 from PCA import *
-from scipy import stats
+from KnnDensityEstimator import *
 import os,cPickle,copy
 import numpy as np
 global Searcher
@@ -54,37 +54,47 @@ class Searcher:
     for j in range(0,len(self.Tmp)):  
       node=self.Tmp[j]
       DeVector=self.PCAclass.PCA(Current,node['status']) #  {pid:[vectors],,}
-      h=[0,0]
+      h=[0,0,0]
       Featuresum=0
 
       ####Feature 0 ,every dim 
       for pid in node['status']:
         curstate=node['status'][pid]
-        for dim in range(0,len(DeVector[pid])):
-          if curstate!=0:
+        if curstate!=0:
+          for dim in range(0,len(DeVector[pid])):
             value=DeVector[pid][dim]
-            k=self.kernel[(pid,curstate)][dim+1].integrate_box_1d(value-5,value+5)
-            if k!=0:
-              h[0]+=np.log(k)
-              print k,'0'
-            else:
-              print '0 alert'
-              h[0]+=(-253)
+            h[0]+=self.kernel[(pid,curstate)][dim+1].estimate([value])
+#            k=self.kernel[(pid,curstate)][dim+1].integrate_box_1d(value-5,value+5)
+#            if k!=0:
+#              h[0]+=np.log(k)
+#              print k,'0'
+#            else:
+#              print '0 alert'
+#              h[0]+=(-253)
       ####Feature 1 ,in all dim
       for pid in node['status']:
         curstate=node['status'][pid]
         if curstate!=0:
           value=DeVector[pid]
+          h[1]+=self.kernel[(pid,curstate)][0].estimate(value)
           #lowbound=np.array([t-1 for t in value])
           #highbound=np.array([t+1 for t in value])
           #k=self.kernel[(pid,curstate)][0].integrate_box(lowbound,highbound,maxpts=5)          
-          k=self.kernel[(pid,curstate)][0](value)[0]
-          if k!=0:
-            h[1]+=np.log(k)
-            print k,'1'
-          else:
-            print '1 alert'
-            h[1]+=(-253)
+#          k=self.kernel[(pid,curstate)][0](value)[0]
+#          if k!=0:
+#            h[1]+=np.log(k)
+#            print k,'1'
+#          else:
+#            print '1 alert'
+#            h[1]+=(-253)
+      ####Feature 2,discriminant
+      for pid in node['status']:
+        curstate=node['status'][pid]
+        if curstate!=0:
+          value=DeVector[pid]
+          for dim in range(0,len(DeVector[pid])-2):
+            h[2]+=self.kernel3[(pid,curstate)][dim].estimate(value[dim:dim+3])
+            h[2]-=self.kernel2[(pid,curstate)][dim+1].estimate(value[dim:dim+2])
       for w in range(0,len(h)):
         h[w]=float(h[w])
       #Calculate the sum
@@ -128,6 +138,8 @@ class Searcher:
       
   def __init__(self):
     self.kernel={}
+    self.kernel2={}
+    self.kernel3={}
     self.StatusSet={}
     dirdata="CompressedData/"
     if os.path.exists(dirdata) is False:
@@ -143,13 +155,20 @@ class Searcher:
       except:
         print 'Open file error'
       self.sf=cPickle.load(fp)
-      self.sf=self.sf
+      self.sf=np.matrix(self.sf)
       fp.close()
       self.kernel[(pid,state)]={}
-      self.kernel[(pid,state)][0]=stats.kde.gaussian_kde(self.sf.T)
+      self.kernel[(pid,state)][0]=KnnDensityEstimator(self.sf.tolist())
       #0 is special for containing all dimensions
       for y in range(0,np.size(self.sf,1)):
-        self.kernel[(pid,state)][y+1]=stats.kde.gaussian_kde(self.sf[:,y].T)
+        self.kernel[(pid,state)][y+1]=KnnDensityEstimator(self.sf[:,y].tolist())
+      
+      self.kernel2[(pid,state)]={}
+      for y in range(0,np.size(self.sf,1)-1):
+        self.kernel2[(pid,state)][y]=KnnDensityEstimator(self.sf[:,y:y+2].tolist())
+      self.kernel3[(pid,state)]={}
+      for y in range(0,np.size(self.sf,1)-2):
+        self.kernel3[(pid,state)][y]=KnnDensityEstimator(self.sf[:,y:y+3].tolist())
     try:
       fp=open("Data/Status.dat",'r')
     except:

@@ -179,7 +179,7 @@ class Optimizer:
     iternum=0
     Maxiter=100
     self.searcher=Searcher()
-    while iternum<Maxiter and abs(lasterror-newerror)>epsilon:
+    while iternum<Maxiter and abs(lasterror-newerror)>=epsilon:
       print "#Iterating %d:"%(iternum+1)
       print "##Generating TrainSet......"
       TrainSet=self.searcher.StatusSearch(lamatas,N,DevSet)

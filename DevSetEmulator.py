@@ -36,7 +36,7 @@ if __name__ == '__main__':
   Status={}
   for x in StatusSet:
     Status[x]=1
-  DevSet.append({'status':Status,'current':GetCurrent(Status,DevData)})
+  #DevSet.append({'status':Status,'current':GetCurrent(Status,DevData)})
   for x in StatusSet:
     Status[x]=0
     tmpStatus=copy.deepcopy(Status)
@@ -45,4 +45,4 @@ if __name__ == '__main__':
   DevSet=DevSet[0:4]
   print 'Generating DevSet Finished'
   a=Optimizer()
-  a.OptimizeIterator(DevSet,[1,1],10)
+  a.OptimizeIterator(DevSet,[1,1,1],10)
