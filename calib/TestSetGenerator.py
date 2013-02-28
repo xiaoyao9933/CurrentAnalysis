@@ -1,49 +1,50 @@
 # -*- coding: utf-8 -*-
 import cPickle
 import numpy as np
-from StatusSearch import *
+import PreProcess
+import StatusSearch
 
-def GetCurrent(Status,DevData):
-  flag=0
-  print Status
-  for x in Status:
-    if Status[x]!=0:
-      if flag==0:
-        result=np.array(DevData[x,Status[x]])
-        flag=1
-      else:
-        result=result+np.array(DevData[x,Status[x]])
-  return result
-      
-  
-if __name__ == '__main__':
-  try:
-    fp=open("Data/DevSet.dat","r")
-    DevData=cPickle.load(fp)
-  finally:
-    fp.close()
-    
-  try:
-    fp=open("Data/Status.dat",'r')
-    StatusSet=cPickle.load(fp)
-  except:
-    print 'Open file error'
-  finally:
-    fp.close()
-    
-  try:
-    fp=open("Data/lamatas.dat",'r')
-    lamatas=cPickle.load(fp)
-  except:
-    print 'Open file error'
-  finally:
-    fp.close()
-  DevSet=[]
-  Status={}
-  for x in StatusSet:
-    Status[x]=1
-  Status[2]=0
-  #DevSet.append({'status':Status,'current':GetCurrent(Status,DevData)})
-  DevSet.append({'status':Status,'current':f[88]})
-  searcher=Searcher()
-  print searcher.StatusSearch(lamatas,5,DevSet)
+
+class TestSetGenerator:
+    """
+    def GetCurrent(Status,DevData):
+        flag = 0
+        print Status
+        for x in Status:
+            if Status[x] != 0:
+                if flag == 0:
+                    result = np.array(DevData[x, Status[x]])
+                    flag = 1
+        else:
+            result = result + np.array(DevData[x, Status[x]])
+    return result
+    """
+    def ComputeError(self, status1, status2):
+        tsum = 0
+        try:
+            for x in status1:
+                if x not in status2:
+                    tsum = tsum + (status1[x] - 0) ** 2
+                else:
+                    tsum = tsum + (status1[x] - status2[x]) ** 2
+            return np.sqrt(tsum)
+        except:
+            print status1, status2
+
+    def __init__(self):
+        try:
+            fp = open("Data/lamatas.dat", 'r')
+            lamatas = cPickle.load(fp)
+        except:
+            print 'Open file error'
+            return
+        finally:
+            fp.close()
+        PP = PreProcess.PreProcess(devout=1)
+        searcher = StatusSearch.Searcher()
+        result = searcher.StatusSearch(lamatas, 2, PP.DevResult)
+        for index in range(0, len(PP.DevResult)):
+            print index
+            print PP.DevResult[index]['status']
+            print result[index][0]['status']
+            print self.ComputeError(result[index][0]['status'], PP.DevResult[index]['status'])
