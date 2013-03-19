@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+'''
+File: StatusSearch.py
+Author: xiaoyao9933
+Description: This module generates the trainset. The trainset is the result of looking for the nearest the status of the initial status and decompose the total current. 
+Return: [{'status':{0:1,1:1,..},'current':[]},...]
+'''
 import PCA
 import KnnDensityEstimator as kde
 import os
@@ -62,56 +68,48 @@ class Searcher:
         for j in range(0, len(self.Tmp)):
             node = self.Tmp[j]
             DeVector = self.PCAclass.PCA(
-                Current, node['status'])  # {pid:[vectors],,}
+                np.matrix(Current).transpose(), node['status'])  # {pid:[vectors],,}
             h = [0, 0, 0]
-            Featuresum = 0
-
+            OpenedNum = 0
+            for pid in node['status']:
+                if node['status'][pid] is not 0:
+                    OpenedNum += 1
             # Feature 0 ,every dim
             for pid in node['status']:
                 curstate = node['status'][pid]
-                if curstate != 0:
+                if curstate:
                     for dim in range(0, len(DeVector[pid])):
                         value = DeVector[pid][dim]
                         h[0] += self.kernel[(
                             pid, curstate)][dim + 1].estimate([value])
-#            k=self.kernel[(pid,curstate)][dim+1].integrate_box_1d(value-5,value+5)
-#            if k!=0:
-#              h[0]+=np.log(k)
-#              print k,'0'
-#            else:
-#              print '0 alert'
-#              h[0]+=(-253)
+            h[0]= h[0]/100
             # Feature 1 ,in all dim
             for pid in node['status']:
                 curstate = node['status'][pid]
-                if curstate != 0:
+                if curstate:
                     value = DeVector[pid]
                     h[1] += self.kernel[(pid, curstate)][0].estimate(value)
-                    # lowbound=np.array([t-1 for t in value])
-                    # highbound=np.array([t+1 for t in value])
-                    # k=self.kernel[(pid,curstate)][0].integrate_box(lowbound,highbound,maxpts=5)
-#          k=self.kernel[(pid,curstate)][0](value)[0]
-#          if k!=0:
-#            h[1]+=np.log(k)
-#            print k,'1'
-#          else:
-#            print '1 alert'
-#            h[1]+=(-253)
             # Feature 2,discriminant
             for pid in node['status']:
                 curstate = node['status'][pid]
-                if curstate != 0:
+                if curstate:
                     value = DeVector[pid]
                     for dim in range(0, len(DeVector[pid]) - 2):
                         h[2] += self.kernel3[(
                             pid, curstate)][dim].estimate(value[dim:dim + 3])
                         h[2] -= self.kernel2[(
-                            pid, curstate)][dim + 1].estimate(value[dim:dim + 2])
-            for w in range(0, len(h)):
-                h[w] = float(h[w])
+                                pid, curstate)][dim + 1].estimate(value[dim:dim + 2])
+            h[2]=h[2]/10
+            Featuresum = 0
+            for dim in range(0,len(h)):
+                if OpenedNum:
+                    h[dim] = h[dim] / OpenedNum
             # Calculate the sum
-            for k in range(0, len(lamatas)):
-                Featuresum += lamatas[k] * h[k]
+            for dim in range(0, len(lamatas)):
+                if OpenedNum:
+                    Featuresum += lamatas[dim] * h[dim]
+                else:
+                    Featuresum = -999999
             self.Tmp[j]['h'] = h
             self.Tmp[j]['score'] = Featuresum
         self.Tmp.sort(cmp=Scorecmp)
@@ -119,15 +117,16 @@ class Searcher:
         self.Tmp = self.Tmp[0:N]
 
     def StatusSearch(self, lamatas, N, DevSet):
-        Result = []
         for time in range(0, len(DevSet)):
             self.Closed = []
             self.Tmp = []
             self.Open = []
             self.H = {}
             Node = {'status': {}, 'score': -np.inf}
-            for x in self.StatusSet:
-                Node['status'][x] = 1
+            Node['status'] = DevSet[time]['status']
+            for pid in self.StatusSet:
+                if pid not in Node['status']:
+                    Node['status'][pid] = 0
             self.Tmp.append(Node)
             self.Compute(lamatas, N, DevSet[time]['current'])
             self.H[Node['status'].__str__()] = 0
@@ -145,15 +144,18 @@ class Searcher:
                     flag = True
             # After search,push the tmp to closed
             self.PushToClosed()
+            #if self.Result.has_key(time):
+            #    self.Closed += self.Result[time]
             self.Closed.sort(cmp=Scorecmp)
-            Result.append(self.Closed[0:N])
-        return Result
+            self.Result[time]=self.Closed[0:N]
+        return self.Result
 
     def __init__(self):
         self.kernel = {}
         self.kernel2 = {}
         self.kernel3 = {}
         self.StatusSet = {}
+        self.Result = {}
         dirdata = "CompressedData/"
         if os.path.exists(dirdata) is False:
             return False
@@ -191,5 +193,6 @@ class Searcher:
         except:
             print 'Open file error'
         self.StatusSet = cPickle.load(fp)
+        # self.StatusSet.pop(2)
         self.PCAclass = PCA.PCAClass()
         fp.close()

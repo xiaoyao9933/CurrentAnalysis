@@ -29,9 +29,9 @@ class PreProcess:
         for item in x:
             self.f.append(
                 [np.real(ele) / len(item) * 2
-                    for ele in np.fft.fft(item)[1:11:2]] +
+                    for ele in np.fft.fft(item)[1:255:2]] +
                 [np.imag(ele) / len(item) * 2
-                    for ele in np.fft.fft(item)[1:11:2]]
+                    for ele in np.fft.fft(item)[1:255:2]]
             )
         return
 
@@ -163,5 +163,5 @@ class PreProcess:
                         # sample = np.array(self.f).mean(axis=0).tolist()
                         pos = int(np.random.rand() * len(self.f))
                         self.DevResult.append({'status': self.Status,
-                                               'current': self.f[x + 5]})
+                                               'current': self.f[x + 115]})
         return

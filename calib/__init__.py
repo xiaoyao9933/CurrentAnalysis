@@ -6,4 +6,5 @@ from OptimizeWeight import Optimizer
 import KnnDensityEstimator
 import StatusSearch
 import TestSetGenerator
+import Draw3DTrainSet
 #import VectorFilter

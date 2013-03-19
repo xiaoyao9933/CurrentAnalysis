@@ -31,7 +31,7 @@ class TestSetGenerator:
         except:
             print status1, status2
 
-    def __init__(self):
+    def __init__(self,optimizer):
         try:
             fp = open("Data/lamatas.dat", 'r')
             lamatas = cPickle.load(fp)
@@ -41,8 +41,8 @@ class TestSetGenerator:
         finally:
             fp.close()
         PP = PreProcess.PreProcess(devout=1)
-        searcher = StatusSearch.Searcher()
-        result = searcher.StatusSearch(lamatas, 2, PP.DevResult)
+        searcher = optimizer.searcher
+        result = searcher.StatusSearch(lamatas, 20, PP.DevResult)
         for index in range(0, len(PP.DevResult)):
             print index
             print PP.DevResult[index]['status']
