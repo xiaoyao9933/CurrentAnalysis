@@ -29,27 +29,35 @@ class PCAClass:
 
             self.pmatrix[(pid, state)], self.pmean[(pid, state)
                                                    ] = cPickle.load(fp)
-            print np.size(self.pmatrix[(pid, state)],1)
+            #print np.size(self.pmatrix[(pid, state)],1)
             fp.close()
 
     def PCA(self, Current, status):
+        """
+        Current is a single-column matrix
+        """
         if (Current.__str__(),status.__str__()) in self.hashtable:
             return self.hashtable[Current.__str__(),status.__str__()]
         else:
             first = True
             A = None
             b = None
+            length = Current.size
+            DevectorSum = np.matrix(np.zeros((length,1)))
+            DeviceNum=0
+            
             # Combine the matrix
             for x in status:
                 if status[x] != 0:
+                    DeviceNum += 1
                     if first:
                         A = self.pmatrix[(x, status[x])]
                         first = False
                     else:
                         A = np.column_stack((A, self.pmatrix[(x, status[x])]))
             first = True
-            cond_num = np.linalg.cond(A)
-            print 'condition number %d'%(cond_num)
+            if A is not None:
+                cond_num = np.linalg.cond(A)
             # AX+b=Y    get X.
             for x in status:
                 if status[x] != 0:
@@ -69,10 +77,16 @@ class PCAClass:
                     rjk = self.pmatrix[(x, status[x])] * ijk + \
                         self.pmean[(x, status[x])]
                     DeVector[x] = rjk.transpose().tolist()[0]
+                    DevectorSum+=rjk;
                 else:
-                    DeVector[x] = np.zeros((1, 10))[0]
-            self.hashtable[Current.__str__(),status.__str__()] = DeVector
-            return DeVector
+                    DeVector[x] = np.zeros((1, length))[0]
+            subvalue = np.abs(Current-DevectorSum).sum()
+            if DeviceNum!=0:
+                cond_factor = subvalue/(cond_num/DeviceNum)
+            else:
+                cond_factor = -1
+            self.hashtable[Current.__str__(),status.__str__()] = (DeVector,cond_factor)
+            return (DeVector,cond_factor)
 
 
 

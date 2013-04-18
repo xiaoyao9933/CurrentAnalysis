@@ -104,7 +104,7 @@ class Optimizer:
                 ranker.append([score, self.ComputeError(x['status'], TargetStatus),x['status']])
         ranker.sort(cmp=self.ScoreCmp)
         # Formula columnerror = rank[i]*exp(error[i])
-        print lamatas,ranker
+        #print lamatas,ranker
         rank0 = 0
         for rank in range(0, len(ranker)):
             if ranker[rank]==0:
@@ -311,7 +311,7 @@ pos))  # Merge Status
                 self.CriPoints.append(
                     self.ComputeCriticalPoints(lamatas, TrainSet[time], dim))
             lamatas[dim], rank0_error,c_error = self.SelectWeight(self.CriPoints, DevSet, TrainSet, lamatas, dim)
-            print self.CriPoints
+            #print self.CriPoints
             print rank0_error,c_error
             if rank0_error + c_error< minerror:
                 minerror = rank0_error + c_error
@@ -328,7 +328,7 @@ pos))  # Merge Status
         newerror = 10
         epsilon = 0.001
         iternum = 0
-        Maxiter = 50
+        Maxiter = 10
         self.MergeResult = []
         #Initializing the searcher.
         self.searcher = StatusSearch.Searcher()

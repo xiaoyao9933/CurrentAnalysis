@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 def GetCurrent(Status, AllVectors):
     flag = 0
     selected ={}
-    print Status
     for x in Status:
         if Status[x] != 0:
             selected[x] = AllVectors[(x, Status[x])]
@@ -20,7 +19,7 @@ def GetCurrent(Status, AllVectors):
         result = np.zeros((1, len(AllVectors[(0, 1)])))[0].tolist()
     return result,selected
 
-def VerifyCurrent(Status):
+def VerifyCurrent(Status,TarStatus):
     dirdata = "CompressedData/"
     AllVectors = {}
     if os.path.exists(dirdata) is False:
@@ -40,13 +39,15 @@ def VerifyCurrent(Status):
         fp.close()
     vector, SelectedVectors =GetCurrent(Status,AllVectors)
     PCAclass = calib.PCA.PCAClass()
-    DeVector = PCAclass.PCA(np.matrix(vector).transpose(), Status)
+    DeVector,subvalue = PCAclass.PCA(np.matrix(vector).transpose(), TarStatus)
     plt.ioff()
+    print subvalue
     dims = len(AllVectors[(0, 1)])
-    for pid in SelectedVectors: 
-        fig=plt.figure()
-        plt.bar(np.arange(0,dims,1),DeVector[pid],0.3)
-        plt.bar(np.arange(0.3,dims+0.3,1),SelectedVectors[pid],0.3,color='r')
-        plt.show()
-    
+#    for pid in TarStatus: 
+#        fig=plt.figure()
+#        plt.bar(np.arange(0,dims,1),DeVector[pid],0.3)
+##        plt.bar(np.arange(0.3,dims+0.3,1),SelectedVectors[pid],0.3,color='r')
+##        plt.show()
+#    plt.bar(np.arange(0.3,dims+0.3,1),vector,0.3,color='r')
+#    plt.show()  
     

@@ -16,11 +16,14 @@ import numpy as np
 def Scorecmp(x, y):
     if (x['score'] < y['score']):
         return 1
-    elif (x['score'] < y['score']):
-        return 0
     else:
         return -1
 
+def SubValuecmp(x, y):
+    if (x['subvalue'] > y['subvalue']):
+        return 1
+    else:
+        return -1
 
 class Searcher:
     kernel = None
@@ -67,9 +70,15 @@ class Searcher:
     def Compute(self, lamatas, N, Current):
         for j in range(0, len(self.Tmp)):
             node = self.Tmp[j]
-            DeVector = self.PCAclass.PCA(
-                np.matrix(Current).transpose(), node['status'])  # {pid:[vectors],,}
-            h = [0, 0, 0]
+            node['DeVector'],node['subvalue'] = self.PCAclass.PCA(
+            np.matrix(Current).transpose(), node['status'])  # {pid:[vectors],,}
+            #print node['subvalue']
+        self.Tmp= filter(lambda node:node['subvalue']!= -1, self.Tmp)
+            
+        for j in range(0, len(self.Tmp)):
+            node = self.Tmp[j]
+            DeVector = node['DeVector']
+            h = [0, 0, 0, 0]
             OpenedNum = 0
             for pid in node['status']:
                 if node['status'][pid] is not 0:
@@ -104,6 +113,8 @@ class Searcher:
             for dim in range(0,len(h)):
                 if OpenedNum:
                     h[dim] = h[dim] / OpenedNum
+                    
+            h[3]=node['subvalue']
             # Calculate the sum
             for dim in range(0, len(lamatas)):
                 if OpenedNum:
@@ -112,12 +123,28 @@ class Searcher:
                     Featuresum = -999999
             self.Tmp[j]['h'] = h
             self.Tmp[j]['score'] = Featuresum
+
+
         self.Tmp.sort(cmp=Scorecmp)
         # Get the N-Best
         self.Tmp = self.Tmp[0:N]
-
+        map(lambda node: node.pop('DeVector'), self.Tmp)
+    def Recalculate(self, lamatas):
+        self.Closed.sort(cmp=SubValuecmp)
+        if len(self.Closed)>0:
+            self.MinSubValue = self.Closed[0]['subvalue']
+        
+        for j in range(0, len(self.Closed)):
+            Featuresum = 0
+            node = self.Closed[j]
+            node['h'][3] = np.log(self.MinSubValue/node['h'][3])
+            for dim in range(0, len(lamatas)):
+                Featuresum += lamatas[dim] * node['h'][dim]
+            node['score'] = Featuresum
+            
     def StatusSearch(self, lamatas, N, DevSet):
         for time in range(0, len(DevSet)):
+            self.MinSubValue = np.inf
             self.Closed = []
             self.Tmp = []
             self.Open = []
@@ -144,6 +171,7 @@ class Searcher:
                     flag = True
             # After search,push the tmp to closed
             self.PushToClosed()
+            self.Recalculate(lamatas)
             #if self.Result.has_key(time):
             #    self.Closed += self.Result[time]
             self.Closed.sort(cmp=Scorecmp)

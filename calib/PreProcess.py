@@ -8,10 +8,10 @@ Split the current with Voltage Zero points.
 import numpy as np
 from PyQt4 import QtGui
 import cPickle
-import os
+import os,copy
+from scipy import signal
 import xml.etree.ElementTree as ET
 import VectorFilter as VF
-
 
 class PreProcess:
 
@@ -24,50 +24,79 @@ class PreProcess:
             self.c.append(item[0:length - 1])
         return
 
-    def __FFTTrans(self, x):
+    def __shape(self, x):
+        f = []
         # length=int((int(self.fsample/50)-20)/2)
         for item in x:
-            self.f.append(
-                [np.real(ele) / len(item) * 2
-                    for ele in np.fft.fft(item)[1:255:2]] +
-                [np.imag(ele) / len(item) * 2
-                    for ele in np.fft.fft(item)[1:255:2]]
-            )
-        return
+            f.append([ele.real for ele in item[1:255:2]] + [ele.imag for ele in item[1:255:2]])
+        return f
 
-    def __Split(self):
-        nMean = np.mean(self.v)
-        nCount = 0
-        tmp_c = []
-        i = 0
-        if self.v[0] < nMean:
-            flag = 0
-        else:
-            flag = 1
-        while True:
-            if flag == 1 and self.v[i] < nMean:
-                flag = 0
-                nCount = nCount + 1
-                i = i + 20  # 20 is a cross step ,to avoid the unstable wave
-            elif flag == 0 and self.v[i] >= nMean:
-                flag = 1
-                if nCount == 0:
-                    begin = i
-                if nCount == 2:
-                    end = i
-                nCount = nCount + 1
-                i = i + 20
-            else:
-                i = i + 1
-            if flag == 0 and nCount == 1:
-                nCount = 0
-            if nCount == 3 and flag == 1:
-                nCount = 1
-                tmp_c.append(self.a[begin:end])
-                begin = i - 19
-            if i >= len(self.v):
-                break
-        return tmp_c
+    def _filterLJJ(self,data,b,a):
+        return signal.lfilter(b,a,data)
+    
+    def _maxPos(self,a):
+        t=0;    
+        for i in range(len(a)):
+            if a[i]>a[t]:
+                t=i
+        return t;
+    def _Vdaq(self,din, d,N):
+        out=[]
+        for t in range(N):
+            x=d*t
+            xf=int(x)
+            xc=int(x)+1
+            xd=x-xf
+            out.append(din[xf]*(1-xd)+din[xc]*xd);
+        return out   
+    def _yipin(self,v,fs):
+        fs=float(fs)
+        f0=49.5
+        fsign=50.0
+        
+        start=12000;#startpoint
+        dur=10
+        
+        t=[v[i]*np.exp(-2j*np.pi*f0*i/fs) for i in range(len(v))]
+        #print t[1]
+        
+        
+        norm_pass = 1/(fs/2)
+        
+        norm_stop = 40/(fs/2)
+        
+        (b, a) = signal.iirdesign(wp=norm_pass, ws=norm_stop, gpass=0.50, gstop=60.0,ftype="cheby2")
+        
+        y = signal.lfilter(b, a, t)
+        
+        dx=dur*fsign;#
+        
+        fy=np.fft.fft([y[start+i*dx] for i in range(int(dur*fs/dx))]);
+        ps=self._maxPos(np.abs(fy))
+        print "max at", ps,"sf equal ",ps*1.0/dur
+        f=f0+ps*1.0/dur
+        d=fsign/f
+        N=int((len(v)-10)//d);
+        rv=self._Vdaq(v,d,N)
+        return (rv,f)
+    
+    def _encodeMD(self,a,b):
+        x=copy.deepcopy(b);
+        n=np.size(a,1);
+        for i in range(1,n/2):
+            a[:,i]=a[:,i]/x;
+            a[:,i]=a[:,i]*np.abs(x);
+            x=x*b;
+            x=x/abs(b);
+    def _decodeMD(self,a,b):
+        x=copy.deepcopy(b);
+        n=np.size(a,1);
+        for i in range(1,n/2):
+            a[:,i]=a[:,i]*x;
+            a[:,i]=a[:,i]/np.abs(x);
+            x=x*b;
+            x=x/abs(b);
+
 
     def __init__(self, devout=0):
         files = QtGui.QFileDialog.getOpenFileNames(
@@ -82,6 +111,7 @@ class PreProcess:
             root = tree.getroot()
             for sample in root.findall('sample'):
                 self.fsample = int(sample.find('frequency').text)
+                self.percircle = int (self.fsample/50)
                 date = sample.find('date').text
                 cfile = filedir + '/' + sample.find('cfile').text
                 vfile = filedir + '/' + sample.find('vfile').text
@@ -148,11 +178,29 @@ class PreProcess:
                 print "The StatusSet Now:"
                 print self.StatusSet
                 print 'Spliting the current into pieces of periods......'
-                self.__CutToTheSame(self.__Split())
+                print len(self.v), len(self.a)
+                rv,f1=self._yipin(self.v,self.fsample);
+                ra,f2=self._yipin(self.a,self.fsample);
+                print f1,f2
                 del self.a
                 del self.v
+                nv=len(rv)//self.percircle*self.percircle
+                na=len(ra)//self.percircle*self.percircle
+                rv=np.array(rv[0:nv])
+                ra=np.array(ra[0:na])
+                rv=np.array(rv).reshape((nv/self.percircle,self.percircle))
+                self.ra=np.array(ra).reshape((na/self.percircle,self.percircle))
+                self.fv=-np.fft.fft(rv)/self.percircle/2
+                self.fa=np.fft.fft(self.ra)/self.percircle/2
+                min_len=min([len(self.fv),len(self.fa)])
+                self.fv=self.fv[0:min_len]
+                self.fa=self.fa[0:min_len]
+                self._encodeMD(self.fa,self.fv[:,1])
+                self.f = self.__shape(self.fa)
+                
                 print 'Generating Current Vectors By FFT......'
-                self.__FFTTrans(self.c)
+                #self.__FFTTrans(self.c)
+                
                 if 'single' in stype:
                     VF.VectorFilter(self)
                 else:
